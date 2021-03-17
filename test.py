@@ -4,8 +4,7 @@ import datetime
 import socket
 import geocoder
 
-#Variable Preset Declaration
-
+#All Functions Required
 def encrypt(ch, key):
     enc_final = ''
     edit94 = []
@@ -77,6 +76,7 @@ def revRotate(val, shift):
         final_r += i
     return final_r
 
+#Variable Preset Declaration
 ch = input('Enter cipher text \n')
 ts = time.time()
 ip = socket.gethostbyname(socket.gethostname())
@@ -86,6 +86,7 @@ g_lon = g[1]
 ts = toString(ts)
 ip = toString(ip)
 g = toString(g_lat)
+
 listA = []
 edit126_A = []
 edit94_A = []
@@ -93,13 +94,15 @@ edit126_B = []
 edit94_B = []
 edit126_C = []
 edit94_C = []
+
+#KEYS GENERATION
 myKeys = genKeys(ts, g, ip)
 keyA = myKeys[0] 
 keyB = myKeys[1]
 keyC = myKeys[2]
 final = ''
 
-
+#Encryption Generator
 ciph1 = encrypt(ch, keyA)
 edit126_A = ciph1[0]
 edit94_A = ciph1[1]
@@ -117,6 +120,7 @@ edit126_C = ciph3[0]
 edit94_C = ciph3[1]
 finalC = ciph3[2]
 ciph3_r = rotate(finalC, int(g_lon))
+
 
 print('\n\n////////////////////////////////////////////////////////////////////////////')
 print('///                               ENCRYPTION                              /')
@@ -138,9 +142,11 @@ print('listC', [edit94_C, edit126_C])
 
 print('\n\nFinal Encryption', ciph3_r, '\n\n')
 
+
 print('\n\n////////////////////////////////////////////////////////////////////////////')
 print('///                               DECRYPTION                              /')
 print('//////////////////////////////////////////////////////////////////////////\n\n')
+
 
 revCiph3_r = revRotate(ciph3_r,int(g_lon))
 print('rev3',revCiph3_r)
@@ -158,12 +164,3 @@ revCiph1 = decrypt(revCiph1_r, keyA, edit94_A, edit126_A)
 print('Final Text',revCiph1, '\n')
 
 print('\n\nFinal Decryption', revCiph1, '\n\n')
-
-
-
-
-
-
-
-
-
