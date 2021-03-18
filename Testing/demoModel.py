@@ -1,4 +1,4 @@
-
+# WORk from line 420
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
 import os
@@ -156,8 +156,50 @@ class Ui_FinalYearProject(object):
                 val = val[1:]
         return [val[::-1],name[::-1]]
 
+    def keySeperator(self,x,y):
+        newKey = x
+        c1 = ''
+        c2 = ''
+        ca = ''
+        cb = ''
+        cx = []
+        cy = []
+        newKey = newKey.replace(y,'')
+        
+        if 'nul' in newKey:
+            return (cx,cy)
+        else:
+            for index,i in enumerate(newKey):
+                if 'y' in i:
+                    c2 = newKey
+                    break
+                else:
+                    c1 += i
+                    newKey = newKey[1:]
+            
+            if len(c1) > 0:
+                c1 = c1[1:]
+                c1 += 'x' 
+                for i in c1:
+                    if 'x' in i:
+                        cx.append(int(ca))
+                        ca = ''
+                    else:
+                        ca += i 
+
+            if len(c2) > 0:
+                c2 = c2[1:]
+                c2 += 'y'
+                for i in c2:
+                    if 'y' in i:
+                        cy.append(int(cb))
+                        cb = ''
+                    else:
+                        cb += i
+            return [cx,cy]
+
     def beginDecipher(self,string):
-        checkA = False 
+        checkA = False
         checkB = False
         checkC = False
         temp = ''
@@ -205,48 +247,27 @@ class Ui_FinalYearProject(object):
 
             temp  = int(segre_A)
             segre_A = key[:int(segre_A)]
+            segre_A = segre_A.replace('ax','x')
+            segre_A = segre_A.replace('ay','y')
             key = key[temp:]
 
             temp  = int(segre_B)
             segre_B = key[:int(segre_B)]
+            segre_B = segre_B.replace('bx','x')
+            segre_B = segre_B.replace('by','y')
             key = key[temp:]
 
             temp  = int(segre_C)
             segre_C = key[:int(segre_C)]
+            segre_C = segre_C.replace('cx','x')
+            segre_C = segre_C.replace('cy','y')
 
-            
+            segre_A = self.keySeperator(segre_A,'--250102--')
+            segre_B = self.keySeperator(segre_B,'--100512--')
+            segre_C = self.keySeperator(segre_C,'--999998')
 
-        
-        
+            return [segre_A[0],segre_A[1],segre_B[0],segre_B[1],segre_C[0],segre_C[1]]
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         else:
             return print('File Has been Tampered with')
@@ -396,7 +417,7 @@ class Ui_FinalYearProject(object):
             key = f.readline()
         
         deciph = self.beginDecipher(key)
-        print(deciph)
+        print('Trigger',deciph)  #WORK FROM HERE
 
 
 
