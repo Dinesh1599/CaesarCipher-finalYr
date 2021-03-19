@@ -1,7 +1,12 @@
 # WORk from line 420
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
+from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog, QMessageBox
 import os
+import socket
+import sys
+import time
+import datetime
+import geocoder
 
 class Ui_FinalYearProject(object):
 
@@ -45,13 +50,9 @@ class Ui_FinalYearProject(object):
         self.Decryption.setObjectName("Decryption")
         self.gridLayout = QtWidgets.QGridLayout(self.Decryption)
         self.gridLayout.setObjectName("gridLayout")
-
-
         self.browseBtn = QtWidgets.QPushButton(self.Decryption)
         self.browseBtn.setObjectName("browseBtn")
         self.gridLayout.addWidget(self.browseBtn, 0, 1, 1, 1)
-        
-
         self.buttonDecrypt = QtWidgets.QPushButton(self.Decryption)
         self.buttonDecrypt.setObjectName("buttonDecrypt")
         self.gridLayout.addWidget(self.buttonDecrypt, 2, 0, 1, 2)
@@ -93,11 +94,20 @@ class Ui_FinalYearProject(object):
         self.browseBtn.setText(_translate("FinalYearProject", "Browse"))
         self.buttonDecrypt.setText(_translate("FinalYearProject", "Begin Decryption"))
         self.tabE.setTabText(self.tabE.indexOf(self.Decryption), _translate("FinalYearProject", "Decryption"))
-        self.menuFile.setTitle(_translate("FinalYearProject", "File"))
         self.browseBtn.clicked.connect(self.browsefiles)
         self.buttonEncrpyt.clicked.connect(self.beginEncryptTrigger)
         self.buttonDecrypt.clicked.connect(self.beginDecryptTrigger)
 
+    def is_connected(self,hostname):
+        try:
+            host = socket.gethostbyname(hostname)
+            s = socket.create_connection((host, 80), 2)
+            s.close()
+            return True
+        except:
+           pass
+        return False
+    
     def browsefiles(self):
         filename = QFileDialog.getOpenFileName(None,"Open Key File" , '.', "LDT file (*.ldt)")
         path = filename[0]
@@ -300,7 +310,13 @@ class Ui_FinalYearProject(object):
 
         
         else:
-            return print('File Has been Tampered with')
+            msg = QMessageBox()
+            msg.setWindowTitle("Error")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error")
+            msg.setInformativeText("Key Invalid")
+            x = msg.exec_()
+            sys.exit(app.exec_())
 
     def decrypt(self,ch, key, l94, l126):
         dec_final = ''
@@ -333,162 +349,243 @@ class Ui_FinalYearProject(object):
             #print(index,':',i,':', val , ':', chr(val))
         return [edit126, edit94, enc_final]
 
+    def popup_clicked(self, i):
+        #print(i.text())
+        if i.text() == 'Retry':
+            return self.beginEncryptTrigger()
+        else:
+            sys.exit(app.exec_())
+    
+    def popupOk_clicked(self,i):
+        if i.text() == 'Ok':
+            self.textEncrypt.setPlainText('')
+        return None
+    
     def beginEncryptTrigger(self):
+        #Checks for internet conenection
+        REMOTE_SERVER = "one.one.one.one"
+        internetVerifier = self.is_connected(REMOTE_SERVER)
+        if internetVerifier:
+            #print('Connection Sucess')
+            g = geocoder.ip('me').latlng
+            g_lat = g[0]
+            g_lon = g[1]
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("Error")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Internet Connection Unavailable")
+            msg.setInformativeText("Please check your internet connection")
+            msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Abort)
+            msg.setDefaultButton(QMessageBox.Retry)
+            msg.buttonClicked.connect(self.popup_clicked)
+            x = msg.exec_()
+
+
 
         #initializers Values for Encryption
         ch = self.textEncrypt.toPlainText()
         ts = time.time()
         ip = socket.gethostbyname(socket.gethostname())
-        g = geocoder.ip('me').latlng
-        g_lat = g[0]
-        g_lon = g[1]
         ts = self.toString(ts)
         ip = self.toString(ip)
         g = self.toString(g_lat)
 
+        
+        if len(ch) <1:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Missing Message")
+            msg.setInformativeText("Please insert the message to encrypt")
+            msg.buttonClicked.connect(self.popupOk_clicked)
+            x = msg.exec_()
+        elif ch == '':
+            return None
+        
+        else:
         #KEYS GENERATION
-        myKeys = self.genKeys(ts, g, ip)
-        keyA = myKeys[0] 
-        keyB = myKeys[1]
-        keyC = myKeys[2]
-        finalKey = ''
-        tcp= ''
-        saveFname = ''
-        saveFdir = ''
-        tval = 0
+            myKeys = self.genKeys(ts, g, ip)
+            keyA = myKeys[0] 
+            keyB = myKeys[1]
+            keyC = myKeys[2]
+            finalKey = ''
+            tcp= ''
+            saveFname = ''
+            saveFdir = ''
+            tval = 0
 
-        ciph1 = self.encrypt(ch, keyA)
-        edit126_A = ciph1[0]
-        edit94_A = ciph1[1]
-        finalA = ciph1[2]
-        ciph1_r = self.rotate(finalA, int(g_lon))
+            ciph1 = self.encrypt(ch, keyA)
+            edit126_A = ciph1[0]
+            edit94_A = ciph1[1]
+            finalA = ciph1[2]
+            ciph1_r = self.rotate(finalA, int(g_lon))
 
-        ciph2 = self.encrypt(ciph1_r, keyB)
-        edit126_B = ciph2[0]
-        edit94_B = ciph2[1]
-        finalB = ciph2[2]
-        ciph2_r = self.rotate(finalB, int(g_lon))
+            ciph2 = self.encrypt(ciph1_r, keyB)
+            edit126_B = ciph2[0]
+            edit94_B = ciph2[1]
+            finalB = ciph2[2]
+            ciph2_r = self.rotate(finalB, int(g_lon))
 
-        ciph3 = self.encrypt(ciph2_r, keyC)
-        edit126_C = ciph3[0]
-        edit94_C = ciph3[1]
-        finalC = ciph3[2]
-        ciph3_r = self.rotate(finalC, int(g_lon))
-        
-        #print to PlainTextArea
-        self.textEncrypt.setPlainText(ciph3_r)
+            ciph3 = self.encrypt(ciph2_r, keyC)
+            edit126_C = ciph3[0]
+            edit94_C = ciph3[1]
+            finalC = ciph3[2]
+            ciph3_r = self.rotate(finalC, int(g_lon))
 
-        #Createing Key File Here
-        if len(edit126_A) > 0 or len(edit94_A) > 0:
-            for i in edit126_A:
-                finalKey += 'ax'+str(i)
+            #print to PlainTextArea
+            self.textEncrypt.setPlainText(ciph3_r)
 
-            for i in edit94_A:
-                finalKey += 'ay'+str(i)
-        else:
-            finalKey += 'nul'
-        finalKey += '--250102--'
+            #Createing Key File Here
+            if len(edit126_A) > 0 or len(edit94_A) > 0:
+                for i in edit126_A:
+                    finalKey += 'ax'+str(i)
 
-        tval = len(finalKey)
-        tcp += str(tval)+'**'
-        
-        
+                for i in edit94_A:
+                    finalKey += 'ay'+str(i)
+            else:
+                finalKey += 'nul'
+            finalKey += '--250102--'
 
-        if len(edit126_B) > 0 or len(edit94_B) > 0:
-            for i in edit126_B:
-                finalKey += 'bx'+str(i)
-
-            for i in edit94_B:
-                finalKey += 'by'+str(i)
-        else:
-            finalKey += 'nul'
-        finalKey += '--100512--'
-
-        tval =  len(finalKey)-tval
-        tcp += str(tval)+'**'
-        tval = len(finalKey)
+            tval = len(finalKey)
+            tcp += str(tval)+'**'
 
 
-        if len(edit126_C) > 0 or len(edit94_C) > 0:
-            for i in edit126_C:
-                finalKey += 'cx'+str(i)
 
-            for i in edit94_C:
-                finalKey += 'cy'+str(i)
-        else:
-            finalKey += 'nul'
-        finalKey += '--999998'
+            if len(edit126_B) > 0 or len(edit94_B) > 0:
+                for i in edit126_B:
+                    finalKey += 'bx'+str(i)
 
-        tval = len(finalKey) - tval
-        tcp += str(tval)+'**'
+                for i in edit94_B:
+                    finalKey += 'by'+str(i)
+            else:
+                finalKey += 'nul'
+            finalKey += '--100512--'
 
-        print(edit126_A, edit94_A)
-        print(edit126_B, edit94_B)
-        print(edit126_C, edit94_C)
-        finalKey = tcp + finalKey + '|' + ts +'?' +  ip + '@' + g + '!' + str(int(g_lon))
-        print(finalKey)
+            tval =  len(finalKey)-tval
+            tcp += str(tval)+'**'
+            tval = len(finalKey)
 
-        sfilename = QFileDialog.getSaveFileName(None, 'Save Encryption Key','', "LDT file (*.ldt)")
-        saveFdir = self.dirAloc(sfilename[0])
-        sfilename = saveFdir[1]
-        saveFdir = saveFdir[0]
 
-        completeName = os.path.join(saveFdir, sfilename)
-        print(sfilename,saveFdir)
-        
-        fileFinal = open(completeName, "w")
-        fileFinal.write(finalKey)
-        fileFinal.close
+            if len(edit126_C) > 0 or len(edit94_C) > 0:
+                for i in edit126_C:
+                    finalKey += 'cx'+str(i)
+
+                for i in edit94_C:
+                    finalKey += 'cy'+str(i)
+            else:
+                finalKey += 'nul'
+            finalKey += '--999998'
+
+            tval = len(finalKey) - tval
+            tcp += str(tval)+'**'
+
+            #print(edit126_A, edit94_A)
+            #print(edit126_B, edit94_B)
+            #print(edit126_C, edit94_C)
+            finalKey = tcp + finalKey + '|' + ts +'?' +  ip + '@' + g + '!' + str(int(g_lon))
+            #print(finalKey)
+
+            sfilename = QFileDialog.getSaveFileName(None, 'Save Encryption Key','', "LDT file (*.ldt)")
+            while len(sfilename[0]) <1 :
+                msg = QMessageBox()
+                msg.setWindowTitle("Warning")
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("Select Diretory")
+                msg.setInformativeText("Please include Save Location")
+                msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+                x = msg.exec_()
+
+                if x == QMessageBox.Ok:
+                    sfilename = QFileDialog.getSaveFileName(None, 'Save Encryption Key','', "LDT file (*.ldt)")
+                elif x == QMessageBox.Cancel:
+                    sys.exit(app.exec_())
+            else:
+                saveFdir = self.dirAloc(sfilename[0])
+                sfilename = saveFdir[1]
+                saveFdir = saveFdir[0]
+    
+                completeName = os.path.join(saveFdir, sfilename)
+                #print(sfilename,saveFdir)
+    
+                fileFinal = open(completeName, "w")
+                fileFinal.write(finalKey)
+                fileFinal.close
                 
     def beginDecryptTrigger(self):
+
         filePath = self.fileName.text()
-        ch = ch = self.textDecrypt.toPlainText()
+        ch  = self.textDecrypt.toPlainText()
         key = ''
-        if len(filePath) < 1:
-            return print('Nothing Here dir')
-        print(filePath)
-        
-        if len(ch)<=0:
-            return print('Nothing here Text')
 
-        with open(filePath, "r") as f:
-            key = f.readline()
-        
-        deciph = self.beginDecipher(key)
-        print('Trigger',deciph)  #WORK FROM HERE
-        g_lon = int(deciph[9])
-        myKeys = self.genKeys(int(deciph[6]), int(deciph[8]), int(deciph[7]))
-        keyA = myKeys[0] 
-        keyB = myKeys[1]
-        keyC = myKeys[2]
-        edit94_C = deciph[5]
-        edit126_C = deciph[4]
-        edit94_B = deciph[3]
-        edit126_B = deciph[2]
-        edit94_A = deciph[1]
-        edit126_A = deciph[0]
+        while len(filePath) <1 :
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Select Diretory")
+            msg.setInformativeText("Please insert key file")
+            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            x = msg.exec_()
+            if x == QMessageBox.Ok:
+                self.browsefiles()
+            elif x == QMessageBox.Cancel:
+                sys.exit(app.exec_())
 
-        revCiph3_r = self.revRotate(ch,int(g_lon))
-        revCiph3 = self.decrypt(revCiph3_r, keyC, edit94_C, edit126_C)
+        if len(ch) <1:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Missing Cipher")
+            msg.setInformativeText("Please insert the message to decrypt")
+            x = msg.exec_()
+            if x == QMessageBox.Ok:
+                self.textDecrypt.setPlainText('')
+        elif ch == '':
+            return None
 
-        revCiph2_r = self.revRotate(revCiph3,int(g_lon))
-        revCiph2 = self.decrypt(revCiph2_r, keyB, edit94_B, edit126_B)
+        else:
+            with open(filePath, "r") as f:
+                key = f.readline()
+            if len(key) <= 0:
+                msg = QMessageBox()
+                msg.setWindowTitle("Error")
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("Error")
+                msg.setInformativeText("Key Invalid")
+                x = msg.exec_()
+                sys.exit(app.exec_())
+            
+            deciph = self.beginDecipher(key)
+            #print('Trigger',deciph)  #WORK FROM HERE
+            g_lon = int(deciph[9])
+            myKeys = self.genKeys(int(deciph[6]), int(deciph[8]), int(deciph[7]))
+            keyA = myKeys[0] 
+            keyB = myKeys[1]
+            keyC = myKeys[2]
+            edit94_C = deciph[5]
+            edit126_C = deciph[4]
+            edit94_B = deciph[3]
+            edit126_B = deciph[2]
+            edit94_A = deciph[1]
+            edit126_A = deciph[0]
 
-        revCiph1_r = self.revRotate(revCiph2,int(g_lon))
-        print('rev1',revCiph1_r)
-        revCiph1 = self.decrypt(revCiph1_r, keyA, edit94_A, edit126_A)
+            revCiph3_r = self.revRotate(ch,int(g_lon))
+            revCiph3 = self.decrypt(revCiph3_r, keyC, edit94_C, edit126_C)
 
-        self.textDecrypt.setPlainText(revCiph1)
+            revCiph2_r = self.revRotate(revCiph3,int(g_lon))
+            revCiph2 = self.decrypt(revCiph2_r, keyB, edit94_B, edit126_B)
+
+            revCiph1_r = self.revRotate(revCiph2,int(g_lon))
+            revCiph1 = self.decrypt(revCiph1_r, keyA, edit94_A, edit126_A)
+
+            self.textDecrypt.setPlainText(revCiph1)
         
 
 if __name__ == "__main__":
-    import sys
-    import time
-    import datetime
-    import socket
-    import geocoder
+
 
     #Values for Keys change
+    
     listA = []
     edit126_A = []
     edit94_A = []
