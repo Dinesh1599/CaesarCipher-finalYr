@@ -34,7 +34,7 @@ def decrypt(ch, key, l94, l126):
             val = val + 94
         elif index in l126:
             val = val + 126
-        l.append(chr(val))
+        #l.append(chr(val))
         dec_final += chr(val)
     return(dec_final)
 

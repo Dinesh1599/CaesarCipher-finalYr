@@ -3,8 +3,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog
 import os
 
-
-
 class Ui_FinalYearProject(object):
 
     def setupUi(self, FinalYearProject):
@@ -84,7 +82,7 @@ class Ui_FinalYearProject(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(FinalYearProject)
-        self.tabE.setCurrentIndex(1)
+        self.tabE.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(FinalYearProject)
 
     def retranslateUi(self, FinalYearProject):
@@ -104,9 +102,7 @@ class Ui_FinalYearProject(object):
         filename = QFileDialog.getOpenFileName(None,"Open Key File" , '.', "LDT file (*.ldt)")
         path = filename[0]
         self.fileName.setText(path)
-
         
-
     def toString(self, val):
         val = str(val)
         return val.replace('.','')   
@@ -198,6 +194,32 @@ class Ui_FinalYearProject(object):
                         cb += i
             return [cx,cy]
 
+    def mainKeySeperator(self,string):
+        x = string+'|'
+        temp = ''
+        ts = ''
+        ip = ''
+        g = ''
+        glong = ''
+
+        for i in x:
+            if '?' in i:
+                ts = temp
+                temp = ''
+            elif '@' in i:
+                ip = temp
+                temp = ''
+            elif '!' in i:
+                g = temp
+                temp = ''
+            elif '|' in i:
+                glong = temp
+                temp =''
+            else:
+                temp += i
+            
+        return [ts,ip,g,glong]
+
     def beginDecipher(self,string):
         checkA = False
         checkB = False
@@ -205,6 +227,7 @@ class Ui_FinalYearProject(object):
         temp = ''
         key = string
         final = 0
+        final_2 = 0
         segregrater = ''
         segre_A = ''
         segre_B = ''
@@ -222,6 +245,9 @@ class Ui_FinalYearProject(object):
             for index, i in enumerate(key):
                 if '*' in i:
                     final = index + 1
+                elif '|' in i:
+                    final_2 = index
+                
                 
             segregrater = key[0:final]
             segregrater = segregrater.replace('**','-')
@@ -243,7 +269,8 @@ class Ui_FinalYearProject(object):
                     temp += segregrater[0]
                     segregrater = segregrater[1:]
 
-            key = key[final:]
+            key = key[final:final_2]
+            key2 =string[final_2+1:]
 
             temp  = int(segre_A)
             segre_A = key[:int(segre_A)]
@@ -261,18 +288,30 @@ class Ui_FinalYearProject(object):
             segre_C = key[:int(segre_C)]
             segre_C = segre_C.replace('cx','x')
             segre_C = segre_C.replace('cy','y')
+            key = key[temp:]
 
             segre_A = self.keySeperator(segre_A,'--250102--')
             segre_B = self.keySeperator(segre_B,'--100512--')
             segre_C = self.keySeperator(segre_C,'--999998')
+            key2 = self.mainKeySeperator(key2)
 
-            return [segre_A[0],segre_A[1],segre_B[0],segre_B[1],segre_C[0],segre_C[1]]
+            return [segre_A[0],segre_A[1],segre_B[0],segre_B[1],segre_C[0],segre_C[1],key2[0],key2[1],key2[2],key2[3]]
+            
 
         
         else:
             return print('File Has been Tampered with')
 
-            
+    def decrypt(self,ch, key, l94, l126):
+        dec_final = ''
+        for index, i in enumerate(ch):
+            val = ord(i) - key
+            if index in l94:
+                val = val + 94
+            elif index in l126:
+                val = val + 126
+            dec_final += chr(val)
+        return(dec_final)       
     
     def encrypt(self, ch, key):
         enc_final = ''
@@ -386,7 +425,7 @@ class Ui_FinalYearProject(object):
         print(edit126_A, edit94_A)
         print(edit126_B, edit94_B)
         print(edit126_C, edit94_C)
-        finalKey = tcp + finalKey
+        finalKey = tcp + finalKey + '|' + ts +'?' +  ip + '@' + g + '!' + str(int(g_lon))
         print(finalKey)
 
         sfilename = QFileDialog.getSaveFileName(None, 'Save Encryption Key','', "LDT file (*.ldt)")
@@ -400,8 +439,7 @@ class Ui_FinalYearProject(object):
         fileFinal = open(completeName, "w")
         fileFinal.write(finalKey)
         fileFinal.close
-        
-        
+                
     def beginDecryptTrigger(self):
         filePath = self.fileName.text()
         ch = ch = self.textDecrypt.toPlainText()
@@ -418,41 +456,30 @@ class Ui_FinalYearProject(object):
         
         deciph = self.beginDecipher(key)
         print('Trigger',deciph)  #WORK FROM HERE
+        g_lon = int(deciph[9])
+        myKeys = self.genKeys(int(deciph[6]), int(deciph[8]), int(deciph[7]))
+        keyA = myKeys[0] 
+        keyB = myKeys[1]
+        keyC = myKeys[2]
+        edit94_C = deciph[5]
+        edit126_C = deciph[4]
+        edit94_B = deciph[3]
+        edit126_B = deciph[2]
+        edit94_A = deciph[1]
+        edit126_A = deciph[0]
 
+        revCiph3_r = self.revRotate(ch,int(g_lon))
+        revCiph3 = self.decrypt(revCiph3_r, keyC, edit94_C, edit126_C)
 
+        revCiph2_r = self.revRotate(revCiph3,int(g_lon))
+        revCiph2 = self.decrypt(revCiph2_r, keyB, edit94_B, edit126_B)
 
+        revCiph1_r = self.revRotate(revCiph2,int(g_lon))
+        print('rev1',revCiph1_r)
+        revCiph1 = self.decrypt(revCiph1_r, keyA, edit94_A, edit126_A)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        self.textDecrypt.setPlainText(revCiph1)
+        
 
 if __name__ == "__main__":
     import sys
