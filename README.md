@@ -44,12 +44,7 @@ python demoModel.py
     <li>File encryption/decryption support</li>
     <li>Cross-platform executable builds</li>
     <li>Modern UI enhancements and dark mode</li>
-    <li>Cloud key backup and logging features</li>
     <li>Multi-language UI support</li>
 </ul>
 
-<h2>🙌 Contribution</h2>
-<p>Feel free to fork and contribute! Pull requests are welcome.</p>
 
-<h2>📃 License</h2>
-<p>This project is open-source under the MIT License.</p>
